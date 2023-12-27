@@ -32,6 +32,7 @@ export class HomeComponent implements OnInit {
     // Thiết lập lắng nghe sự kiện từ DOM (button clicks)
     this.setupEventListeners();
 
+    this.hideBtlclose();
     // this.hideChatDiv();
   }
   private setupEventListeners() {
@@ -39,7 +40,7 @@ export class HomeComponent implements OnInit {
     if (btnClose) {
       btnClose.addEventListener('click', () => {
         // Đóng kết nối và tắt camera
-        this.closeConnectionAndCamera();
+        this.closeConnectionAndCamera()
       });
     } else {
       console.error("Không tìm thấy button có ID là 'btnClose'");
@@ -49,11 +50,16 @@ export class HomeComponent implements OnInit {
     if (this.isConnected) {
       // Đóng kết nối
       this.disconnect();
+      this.peer.destroy();
+
     }
     if (this.isCameraOn) {
       // Tắt camera
       this.stopCamera();
     }
+    this.socket.emit('TAT_MAY');
+    this.hideBtlclose();
+
   }
   private disconnect() {
     this.peer.disconnect();
@@ -103,12 +109,18 @@ export class HomeComponent implements OnInit {
 
 
   // Trả lời cuộc gọi đến
+
   private answerCall(call: any) {
     this.openStream().then(stream => {
       call.answer(stream);
       this.playStream('localStream', stream);
       call.on('stream', (userVideoStream: any) => this.playStream('remoteStream', userVideoStream));
+      const socketId2 = this.socket.id;
+      this.socket.emit('SOCKET_ID2', socketId2);
     });
+
+    console.log(this.socket.id)
+    this.showBtlclose();
   }
 
   // Gọi người dùng khi click vào tên trong danh sách
@@ -118,6 +130,11 @@ export class HomeComponent implements OnInit {
       const call = this.peer.call(peerId, stream);
       call.on('stream', (userVideoStream: any) => this.playStream('remoteStream', userVideoStream));
     });
+    const socketId1 = this.socket.id;
+    this.socket.emit('SOCKET_ID1', socketId1);
+    console.log(this.socket.id)
+    this.showBtlclose();
+
   }
 
   // Thiết lập lắng nghe sự kiện từ Peer.js
@@ -131,10 +148,10 @@ export class HomeComponent implements OnInit {
     // Lắng nghe sự kiện cuộc gọi đến từ người dùng khác
     this.peer.on('call', (call: any) => {
       if (confirm("Bạn có muốn chấp nhận cuộc gọi từ người dùng này không?")) {
-        // Nếu người dùng chấp nhận, thực hiện cuộc gọi
+
         this.answerCall(call);
       } else {
-
+        this.socket.emit('TU_CHOI_CUOC_GOI');
       }
     });
   }
@@ -157,10 +174,31 @@ export class HomeComponent implements OnInit {
         this.removeUserElement(peerId);
       });
 
+      this.socket.on('TAT_MAY2', () => {
+        if (confirm("Cuoc goi da ket thuc")) {
+          // Nếu người dùng chấp nhận, thực hiện cuộc gọi
+          if (this.isCameraOn) {
+            // Tắt camera
+            this.hideBtlclose();
 
+            this.stopCamera();
+          }
+        } else {
+
+        }
+      })
     });
 
-    // Lắng nghe sự kiện khi người dùng đã tồn tại
+    this.socket.on('TU_CHOI_CUOC_GOI2', () => {
+      alert('Cuoc goi cua ba da bi tu choi')
+      if (this.isCameraOn) {
+        // Tắt camera
+        this.hideBtlclose();
+
+        this.stopCamera();
+      }
+    })
+    // Lắng nghe sự kiện khi người dùng đã tồn tạ
     this.socket.on('NGUOI_DUNG_TON_TAI', () => {
       alert('Nguoi dung ton tai');
     });
@@ -238,6 +276,20 @@ export class HomeComponent implements OnInit {
     const chatDiv = document.getElementById('div_chat');
     if (chatDiv) {
       chatDiv.style.display = 'none';
+    }
+  }
+
+  private hideBtlclose() {
+    const btlClose = document.getElementById('btnClose');
+    if (btlClose) {
+      btlClose.style.display = 'none';
+    }
+  }
+
+  private showBtlclose() {
+    const btlClose = document.getElementById('btnClose');
+    if (btlClose) {
+      btlClose.style.display = 'block';
     }
   }
 
